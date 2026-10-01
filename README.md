@@ -2,6 +2,24 @@
 
 A full-stack **Java microservices** healthcare platform: patients find doctors and book appointments, doctors manage their schedule, admins govern users and view statistics — with **JWT security, OpenFeign inter-service calls, Resilience4j circuit breakers, async notifications, and a React (ES6+) frontend**.
 
+## 📦 Microservice repositories
+
+Every service also lives as a **standalone, independently buildable repo** (own POM, Dockerfile, CI, README):
+
+| Repo | Port |
+|---|---|
+| [medicore-common](https://github.com/Vamshikrishna720/medicore-common) — shared JWT/ApiResponse library | — |
+| [medicore-service-registry](https://github.com/Vamshikrishna720/medicore-service-registry) — Eureka | 8761 |
+| [medicore-api-gateway](https://github.com/Vamshikrishna720/medicore-api-gateway) — Spring Cloud Gateway | 8080 |
+| [medicore-auth-service](https://github.com/Vamshikrishna720/medicore-auth-service) — JWT, BCrypt, deactivation | 8081 |
+| [medicore-patient-service](https://github.com/Vamshikrishna720/medicore-patient-service) — profiles | 8082 |
+| [medicore-doctor-service](https://github.com/Vamshikrishna720/medicore-doctor-service) — search, availability | 8083 |
+| [medicore-appointment-service](https://github.com/Vamshikrishna720/medicore-appointment-service) — Feign + Resilience4j booking | 8084 |
+| [medicore-notification-service](https://github.com/Vamshikrishna720/medicore-notification-service) — async notifications | 8085 |
+| [medicore-frontend](https://github.com/Vamshikrishna720/medicore-frontend) — React 18 SPA | 3000 |
+
+> Standalone service repos resolve `com.medicore:medicore-common:1.0.0` from the local Maven repo — run `mvn install` in medicore-common first (or publish to GitHub Packages).
+
 > Built as a portfolio/interview project demonstrating a production-shaped architecture: API Gateway, service discovery, database-per-service, soft-delete compliance patterns, and event-driven notifications.
 
 ---
