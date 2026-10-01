@@ -21,7 +21,6 @@ jobs:
           cache: maven
 
       - name: Build & test all services
-        working-directory: projects/medicore
         run: mvn -B clean verify
 
   frontend:
@@ -36,7 +35,7 @@ jobs:
           node-version: '20'
 
       - name: Install & build
-        working-directory: projects/medicore/medicore-frontend
+        working-directory: medicore-frontend
         run: |
           npm install
           npm run build
@@ -56,11 +55,9 @@ jobs:
           cache: maven
 
       - name: Package backend jars
-        working-directory: projects/medicore
         run: mvn -B -DskipTests clean package
 
       - name: Build all Docker images
-        working-directory: projects/medicore
         run: |
           for svc in service-registry api-gateway auth-service patient-service doctor-service appointment-service notification-service; do
             docker build -t medicore/$svc:latest $svc

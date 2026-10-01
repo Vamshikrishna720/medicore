@@ -67,6 +67,7 @@ public class AppointmentService {
         validateDoctorBookable(doctor);
         validatePatientBookable(patient);
         validateSlotBasics(request.appointmentDate());
+        validateWithinDoctorWindow(doctor, request.appointmentDate());
         ensureNoOverlap(doctor.id(), request.appointmentDate());
 
         Appointment appointment = new Appointment();
@@ -93,8 +94,14 @@ public class AppointmentService {
         Appointment appointment = appointmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Appointment", id));
 
-        boolean isDoctor = "DOCTOR".equals(role);
-        if (!"ADMIN".equals(role) && !isDoctor) {
+        if ("DOCTOR".equals(role)) {
+            // doctors may only manage appointments belonging to them
+            Long doctorId = resolveDoctorId(CurrentUser.requireUserId());
+            if (!doctorId.equals(appointment.getDoctorId())) {
+                throw new com.medicore.common.exception.AccessDeniedException(
+                        "You can only manage your own appointments");
+            }
+        } else if (!"ADMIN".equals(role)) {
             // patients may cancel only their own appointments
             PatientSnapshotDto me = fetchPatient(CurrentUser.requireUserId());
             if (!me.id().equals(appointment.getPatientId())) {
@@ -208,6 +215,23 @@ public class AppointmentService {
         }
         if (Duration.between(now, start).toDays() > 60) {
             throw new BadRequestException("Appointments can be booked at most 60 days ahead");
+        }
+    }
+
+    /** The 30-minute slot must fit inside the doctor's configured availability window. */
+    private void validateWithinDoctorWindow(DoctorSnapshotDto doctor, LocalDateTime start) {
+        try {
+            java.time.LocalTime from = java.time.LocalTime.parse(doctor.availableFrom());
+            java.time.LocalTime to = java.time.LocalTime.parse(doctor.availableTo());
+            java.time.LocalTime slotStart = start.toLocalTime();
+            java.time.LocalTime slotEnd = slotStart.plusMinutes(SLOT_MINUTES);
+            if (slotStart.isBefore(from) || slotEnd.isAfter(to)) {
+                throw new BadRequestException(
+                        "Dr. " + doctor.fullName() + " sees patients between " + doctor.availableFrom()
+                                + " and " + doctor.availableTo());
+            }
+        } catch (java.time.format.DateTimeParseException parseEx) {
+            // Doctor window not parseable — treat as no restriction rather than blocking bookings
         }
     }
 

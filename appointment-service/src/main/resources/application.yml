@@ -4,6 +4,10 @@ server:
 spring:
   application:
     name: APPOINTMENT-SERVICE
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true
   datasource:
     url: jdbc:mysql://${DB_HOST:localhost}:3306/medicore_appointments?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     username: ${DB_USER:medicore}
@@ -29,11 +33,7 @@ springdoc:
   api-docs:
     path: /v3/api-docs
 
-# --- OpenFeign + Resilience4j ---
-spring.cloud.openfeign:
-  circuitbreaker:
-    enabled: true
-
+# --- Resilience4j (circuit breaker instances match the Feign client names) ---
 resilience4j:
   circuitbreaker:
     instances:

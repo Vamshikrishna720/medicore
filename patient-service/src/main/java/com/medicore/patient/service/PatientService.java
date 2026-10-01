@@ -74,8 +74,16 @@ public class PatientService {
 
     @Transactional(readOnly = true)
     public PatientResponse getById(Long id) {
-        return patientRepository.findById(id).map(PatientResponse::from)
+        Patient patient = patientRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Patient", id));
+        // PATIENTs may only view their own profile; ADMINs any profile
+        com.medicore.common.security.UserPrincipal principal = CurrentUser.get();
+        if (principal != null && "PATIENT".equals(principal.role())
+                && !principal.userId().equals(patient.getUserId())) {
+            throw new com.medicore.common.exception.AccessDeniedException(
+                    "You can only view your own profile");
+        }
+        return PatientResponse.from(patient);
     }
 
     /** ADMIN soft-deletes (deactivates) a patient profile. */

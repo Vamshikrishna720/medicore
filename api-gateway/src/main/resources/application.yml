@@ -55,7 +55,7 @@ spring:
             - Path=/api/patients/**
           filters:
             - Jwt
-            - RoleAuth=PATIENT
+            - RoleAuth=ADMIN,PATIENT
 
         # ---------- DOCTOR SERVICE ----------
         # "me" routes must be declared BEFORE the public /api/doctors/** route,

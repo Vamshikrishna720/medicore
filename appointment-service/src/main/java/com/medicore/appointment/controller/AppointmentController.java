@@ -7,6 +7,7 @@ import com.medicore.appointment.entity.Appointment;
 import com.medicore.appointment.service.AppointmentService;
 import com.medicore.common.dto.ApiResponse;
 import com.medicore.common.dto.PageResponse;
+import com.medicore.common.exception.AccessDeniedException;
 import com.medicore.common.security.CurrentUser;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -27,6 +28,17 @@ public class AppointmentController {
     public ResponseEntity<ApiResponse<AppointmentResponse>> book(@Valid @RequestBody BookRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok("Appointment booked", appointmentService.book(request)));
+    }
+
+    /** ADMIN-only: all appointments, paginated. */
+    @GetMapping
+    public ResponseEntity<ApiResponse<PageResponse<AppointmentResponse>>> all(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        if (!CurrentUser.hasRole("ADMIN")) {
+            throw new AccessDeniedException("Only admins can list all appointments");
+        }
+        return ResponseEntity.ok(ApiResponse.ok(appointmentService.listAll(page, Math.min(size, 100))));
     }
 
     @GetMapping("/me/patient")
