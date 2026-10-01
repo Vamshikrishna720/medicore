@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
 import { doctorService, appointmentService, extractError } from '../../services/api.js';
-import { Loading, ErrorBanner, SuccessBanner, EmptyState } from '../../components/ui.jsx';
+import { Loading, ErrorBanner, EmptyState, Avatar } from '../../components/ui.jsx';
+import { useToast } from '../../components/Toast.jsx';
+import { Search, Stethoscope, Money, Clock, X, Calendar } from '../../components/Icons.jsx';
 
 export default function FindDoctors() {
+  const toast = useToast();
   const [doctors, setDoctors] = useState([]);
   const [specializations, setSpecializations] = useState([]);
   const [filters, setFilters] = useState({ specialization: '', minExperience: '', maxFee: '', page: 0 });
@@ -11,7 +14,6 @@ export default function FindDoctors() {
   const [booking, setBooking] = useState(null); // doctor being booked
   const [slot, setSlot] = useState('');
   const [reason, setReason] = useState('');
-  const [bookMsg, setBookMsg] = useState('');
   const [bookError, setBookError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -26,6 +28,7 @@ export default function FindDoctors() {
     doctorService.search(filters)
       .then(({ data }) => {
         setDoctors(data.data.content);
+        setError('');
       })
       .catch((err) => setError(extractError(err)))
       .finally(() => setLoading(false));
@@ -35,7 +38,6 @@ export default function FindDoctors() {
     setBooking(doctor);
     setSlot('');
     setReason('');
-    setBookMsg('');
     setBookError('');
   };
 
@@ -43,15 +45,14 @@ export default function FindDoctors() {
     e.preventDefault();
     setBusy(true);
     setBookError('');
-    setBookMsg('');
     try {
       await appointmentService.book({
         doctorId: booking.id,
         appointmentDate: new Date(slot).toISOString().slice(0, 19),
         reason,
       });
-      setBookMsg(`Booked with ${booking.fullName}! Check My Appointments.`);
-      setTimeout(() => setBooking(null), 1200);
+      toast(`Booked with ${booking.fullName}! See My Appointments.`, 'success');
+      setTimeout(() => setBooking(null), 700);
     } catch (err) {
       setBookError(extractError(err));
     } finally {
@@ -59,65 +60,71 @@ export default function FindDoctors() {
     }
   };
 
+  const setFilter = (key) => (e) =>
+    setFilters((f) => ({ ...f, [key]: e.target.value, page: 0 }));
+
   return (
     <div>
       <div className="page-head">
-        <h1>Find doctors</h1>
+        <h1><Stethoscope size={22} /> Find doctors</h1>
       </div>
 
-      <div className="filters card">
-        <label>
-          <span>Specialization</span>
-          <select
-            value={filters.specialization}
-            onChange={(e) => setFilters({ ...filters, specialization: e.target.value, page: 0 })}
-          >
-            <option value="">All</option>
-            {specializations.map((s) => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span>Min experience (years)</span>
-          <input
-            type="number" min="0"
-            value={filters.minExperience}
-            onChange={(e) => setFilters({ ...filters, minExperience: e.target.value || undefined, page: 0 })}
-          />
-        </label>
-        <label>
-          <span>Max fee</span>
-          <input
-            type="number" min="0"
-            value={filters.maxFee}
-            onChange={(e) => setFilters({ ...filters, maxFee: e.target.value || undefined, page: 0 })}
-          />
-        </label>
+      <div className="card">
+        <div className="filters">
+          <label className="grow">
+            <span>Specialization</span>
+            <div className="input-wrap">
+              <span className="input-icon"><Search size={15} /></span>
+              <select value={filters.specialization} onChange={setFilter('specialization')}>
+                <option value="">All specializations</option>
+                {specializations.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+          </label>
+          <label>
+            <span>Min experience (years)</span>
+            <input type="number" min="0" placeholder="Any" value={filters.minExperience} onChange={setFilter('minExperience')} />
+          </label>
+          <label>
+            <span>Max fee (₹)</span>
+            <input type="number" min="0" placeholder="Any" value={filters.maxFee} onChange={setFilter('maxFee')} />
+          </label>
+        </div>
       </div>
 
-      <ErrorBanner message={error} />
-      {loading ? <Loading /> : null}
+      <ErrorBanner message={error} onClose={() => setError('')} />
+      {loading && doctors.length === 0 ? <Loading /> : null}
 
       {!loading && doctors.length === 0 && !error ? (
-        <EmptyState title="No doctors match your filters" hint="Try clearing a filter." />
+        <div className="card">
+          <EmptyState
+            title="No doctors match your filters"
+            hint="Try widening your search or clearing a filter."
+            icon={Stethoscope}
+          />
+        </div>
       ) : null}
 
       <div className="doctor-grid">
         {doctors.map((d) => (
           <div className="card doctor-card" key={d.id}>
             <div className="doctor-head">
-              <h3>{d.fullName}</h3>
-              <span className="badge badge-blue">{d.specialization}</span>
+              <Avatar name={d.fullName} size="md" ring />
+              <div>
+                <h3>{d.fullName}</h3>
+                <span className="badge badge-blue">{d.specialization}</span>
+              </div>
             </div>
-            <p className="muted">{d.bio || 'No bio provided'}</p>
+            <p className="doctor-bio">{d.bio || 'No bio provided yet.'}</p>
             <div className="doctor-meta">
-              <span>💰 ₹{d.consultationFee}</span>
-              <span>🩺 {d.experienceYears} yrs</span>
-              <span>🕒 {d.availableFrom}–{d.availableTo}</span>
+              <span className="meta-pill"><Money size={14} /> ₹{d.consultationFee}</span>
+              <span className="meta-pill"><Stethoscope size={14} /> {d.experienceYears} yrs</span>
+              <span className="meta-pill"><Clock size={14} /> {d.availableFrom}–{d.availableTo}</span>
             </div>
-            <button className="btn btn-primary btn-block" onClick={() => openBooking(d)}>
-              Book appointment
+            <button className="btn btn-primary" onClick={() => openBooking(d)}>
+              <Calendar size={15} /> Book appointment
             </button>
           </div>
         ))}
@@ -126,12 +133,25 @@ export default function FindDoctors() {
       {booking ? (
         <div className="modal-backdrop" onClick={() => setBooking(null)}>
           <form className="modal card" onClick={(e) => e.stopPropagation()} onSubmit={submitBooking}>
-            <h3>Book with {booking.fullName}</h3>
-            <p className="muted">{booking.specialization} · ₹{booking.consultationFee} per visit</p>
-            <SuccessBanner message={bookMsg} />
-            <ErrorBanner message={bookError} />
+            <div className="card-title-row" style={{ marginBottom: 8 }}>
+              <h3><Calendar size={18} /> Book appointment</h3>
+              <button type="button" className="btn btn-icon btn-outline" onClick={() => setBooking(null)} aria-label="Close">
+                <X size={15} />
+              </button>
+            </div>
+
+            <div className="booking-summary">
+              <b>{booking.fullName}</b>
+              <span className="muted">
+                {booking.specialization} · ₹{booking.consultationFee} per visit · {booking.experienceYears} yrs experience
+              </span>
+              <span className="muted">Available {booking.availableFrom}–{booking.availableTo}</span>
+            </div>
+
+            <ErrorBanner message={bookError} onClose={() => setBookError('')} />
+
             <label className="field">
-              <span>Date &amp; time (30-min slot, :00 or :30)</span>
+              <span>Date &amp; time — 30-minute slots, on the hour or half-hour, within working hours</span>
               <input
                 type="datetime-local"
                 value={slot}
@@ -140,9 +160,10 @@ export default function FindDoctors() {
               />
             </label>
             <label className="field">
-              <span>Reason (optional)</span>
-              <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2} />
+              <span>Reason for visit (optional)</span>
+              <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2} placeholder="e.g. follow-up check, chest pain, annual physical…" />
             </label>
+
             <div className="modal-actions">
               <button type="button" className="btn btn-outline" onClick={() => setBooking(null)}>Cancel</button>
               <button className="btn btn-primary" disabled={busy}>
