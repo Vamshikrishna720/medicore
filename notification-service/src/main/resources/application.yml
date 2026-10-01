@@ -1,0 +1,37 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: NOTIFICATION-SERVICE
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:3306/medicore_notifications?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: ${DB_USER:medicore}
+    password: ${DB_PASSWORD:medicore123}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
+  instance:
+    prefer-ip-address: true
+
+medicore:
+  jwt:
+    secret: ${JWT_SECRET:medicore-dev-secret-key-change-me-in-production-0123456789abcdef}
+  internal-token: ${INTERNAL_TOKEN:medicore-internal-dev-token}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

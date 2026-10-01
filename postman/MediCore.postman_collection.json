@@ -1,0 +1,151 @@
+{
+  "info": {
+    "name": "MediCore API",
+    "description": "Complete API collection for the MediCore healthcare microservices system. Login first (accessToken is auto-saved), then run the other requests.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "accessToken", "value": "" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login (saves token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.token) {",
+                  "  pm.collectionVariables.set('accessToken', json.data.token);",
+                  "  pm.test('token saved', () => pm.expect(json.data.token).to.be.a('string'));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": { "type": "noauth" },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"patient@medicore.com\",\n  \"password\": \"Patient@123\"\n}" }
+          }
+        },
+        {
+          "name": "Register patient",
+          "request": {
+            "method": "POST",
+            "auth": { "type": "noauth" },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register"] },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"new.patient@medicore.com\",\n  \"password\": \"Patient@123\",\n  \"role\": \"PATIENT\"\n}" }
+          }
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/auth/me", "host": ["{{baseUrl}}"], "path": ["api", "auth", "me"] }
+          }
+        },
+        {
+          "name": "List users (ADMIN)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/auth/users?page=0&size=10", "host": ["{{baseUrl}}"], "path": ["api", "auth", "users"], "query": [{ "key": "page", "value": "0" }, { "key": "size", "value": "10" }] }
+          }
+        },
+        {
+          "name": "Deactivate user (ADMIN)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/users/2/status", "host": ["{{baseUrl}}"], "path": ["api", "auth", "users", "2", "status"] },
+            "body": { "mode": "raw", "raw": "{\n  \"active\": false\n}" }
+          }
+        },
+        {
+          "name": "Deactivate self",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/auth/me", "host": ["{{baseUrl}}"], "path": ["api", "auth", "me"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Patients",
+      "item": [
+        {
+          "name": "Create my profile",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/patients/me", "host": ["{{baseUrl}}"], "path": ["api", "patients", "me"] },
+            "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"Test Patient\",\n  \"dateOfBirth\": \"1995-06-15\",\n  \"gender\": \"FEMALE\",\n  \"phone\": \"9876543210\",\n  \"bloodGroup\": \"O+\",\n  \"allergies\": \"Penicillin\",\n  \"chronicConditions\": \"None\"\n}" }
+          }
+        },
+        { "name": "Get my profile", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/patients/me", "host": ["{{baseUrl}}"], "path": ["api", "patients", "me"] } } },
+        { "name": "List patients (ADMIN)", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/patients?page=0&size=10", "host": ["{{baseUrl}}"], "path": ["api", "patients"], "query": [{ "key": "page", "value": "0" }, { "key": "size", "value": "10" }] } } }
+      ]
+    },
+    {
+      "name": "Doctors",
+      "item": [
+        {
+          "name": "Create my profile (DOCTOR)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/doctors/me", "host": ["{{baseUrl}}"], "path": ["api", "doctors", "me"] },
+            "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"Dr. Aisha Verma\",\n  \"specialization\": \"Dermatology\",\n  \"bio\": \"Skin specialist\",\n  \"consultationFee\": 500,\n  \"experienceYears\": 8,\n  \"phone\": \"9876500000\",\n  \"availableFrom\": \"09:00:00\",\n  \"availableTo\": \"17:00:00\"\n}" }
+          }
+        },
+        {
+          "name": "Search doctors (public)",
+          "request": {
+            "method": "GET",
+            "auth": { "type": "noauth" },
+            "url": { "raw": "{{baseUrl}}/api/doctors?specialization=Dermatology&minExperience=3&page=0", "host": ["{{baseUrl}}"], "path": ["api", "doctors"], "query": [{ "key": "specialization", "value": "Dermatology" }, { "key": "minExperience", "value": "3" }, { "key": "page", "value": "0" }] }
+          }
+        },
+        { "name": "Specializations (public)", "request": { "method": "GET", "auth": { "type": "noauth" }, "url": { "raw": "{{baseUrl}}/api/doctors/specializations", "host": ["{{baseUrl}}"], "path": ["api", "doctors", "specializations"] } } },
+        { "name": "Toggle availability (DOCTOR)", "request": { "method": "PATCH", "url": { "raw": "{{baseUrl}}/api/doctors/me/availability?available=false", "host": ["{{baseUrl}}"], "path": ["api", "doctors", "me", "availability"], "query": [{ "key": "available", "value": "false" }] } } }
+      ]
+    },
+    {
+      "name": "Appointments",
+      "item": [
+        {
+          "name": "Book appointment (PATIENT)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/appointments", "host": ["{{baseUrl}}"], "path": ["api", "appointments"] },
+            "body": { "mode": "raw", "raw": "{\n  \"doctorId\": 1,\n  \"appointmentDate\": \"2026-12-01T10:00:00\",\n  \"reason\": \"Skin rash\"\n}" }
+          }
+        },
+        { "name": "My appointments (patient)", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/appointments/me/patient", "host": ["{{baseUrl}}"], "path": ["api", "appointments", "me", "patient"] } } },
+        { "name": "My appointments (doctor)", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/appointments/me/doctor", "host": ["{{baseUrl}}"], "path": ["api", "appointments", "me", "doctor"] } } },
+        { "name": "Cancel appointment", "request": { "method": "PATCH", "url": { "raw": "{{baseUrl}}/api/appointments/1/cancel", "host": ["{{baseUrl}}"], "path": ["api", "appointments", "1", "cancel"] } } },
+        { "name": "Confirm appointment (DOCTOR)", "request": { "method": "PATCH", "url": { "raw": "{{baseUrl}}/api/appointments/1/status?status=CONFIRMED", "host": ["{{baseUrl}}"], "path": ["api", "appointments", "1", "status"], "query": [{ "key": "status", "value": "CONFIRMED" }] } } },
+        { "name": "Stats (ADMIN)", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/appointments/stats", "host": ["{{baseUrl}}"], "path": ["api", "appointments", "stats"] } } }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        { "name": "My notifications", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/notifications?page=0&size=20", "host": ["{{baseUrl}}"], "path": ["api", "notifications"], "query": [{ "key": "page", "value": "0" }, { "key": "size", "value": "20" }] } } }
+      ]
+    }
+  ]
+}

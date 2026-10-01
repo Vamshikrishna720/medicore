@@ -1,0 +1,107 @@
+name: medicore
+
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: medicore_auth
+      MYSQL_USER: medicore
+      MYSQL_PASSWORD: medicore123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot123"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  service-registry:
+    build: ./service-registry
+    ports:
+      - "8761:8761"
+
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      EUREKA_URI: http://service-registry:8761/eureka
+      JWT_SECRET: ${JWT_SECRET:-medicore-dev-secret-key-change-me-in-production-0123456789abcdef}
+    depends_on:
+      - service-registry
+
+  auth-service:
+    build: ./auth-service
+    environment:
+      DB_HOST: mysql
+      EUREKA_URI: http://service-registry:8761/eureka
+      JWT_SECRET: ${JWT_SECRET:-medicore-dev-secret-key-change-me-in-production-0123456789abcdef}
+      INTERNAL_TOKEN: ${INTERNAL_TOKEN:-medicore-internal-dev-token}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      service-registry:
+        condition: service_started
+
+  patient-service:
+    build: ./patient-service
+    environment:
+      DB_HOST: mysql
+      EUREKA_URI: http://service-registry:8761/eureka
+      INTERNAL_TOKEN: ${INTERNAL_TOKEN:-medicore-internal-dev-token}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      service-registry:
+        condition: service_started
+
+  doctor-service:
+    build: ./doctor-service
+    environment:
+      DB_HOST: mysql
+      EUREKA_URI: http://service-registry:8761/eureka
+      INTERNAL_TOKEN: ${INTERNAL_TOKEN:-medicore-internal-dev-token}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      service-registry:
+        condition: service_started
+
+  appointment-service:
+    build: ./appointment-service
+    environment:
+      DB_HOST: mysql
+      EUREKA_URI: http://service-registry:8761/eureka
+      JWT_SECRET: ${JWT_SECRET:-medicore-dev-secret-key-change-me-in-production-0123456789abcdef}
+      INTERNAL_TOKEN: ${INTERNAL_TOKEN:-medicore-internal-dev-token}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      service-registry:
+        condition: service_started
+
+  notification-service:
+    build: ./notification-service
+    environment:
+      DB_HOST: mysql
+      EUREKA_URI: http://service-registry:8761/eureka
+      INTERNAL_TOKEN: ${INTERNAL_TOKEN:-medicore-internal-dev-token}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      service-registry:
+        condition: service_started
+
+  medicore-frontend:
+    build: ./medicore-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - api-gateway
+
+volumes:
+  mysql-data:
