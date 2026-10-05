@@ -1,26 +1,12 @@
-# Build
-target/
-build/
-dist/
-
-# IDE
-.idea/
-*.iml
-.vscode/
-.settings/
-.classpath
-.project
-
-# Node
-node_modules/
-medicore-frontend/dist/
-*.log
-npm-debug.log*
-
-# Env / local
-.env
-*.local.properties
-
-# OS
-.DS_Store
-Thumbs.db
+# The service repos are separate git repos; only track this folder's own files.
+medicore-api-gateway/
+medicore-appointment-service/
+medicore-auth-service/
+medicore-common/
+medicore-doctor-service/
+medicore-frontend/
+medicore-notification-service/
+medicore-patient-service/
+medicore-service-registry/
+# keep the docker-compose and anything at the top level
+!docker-compose.yml
