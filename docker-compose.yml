@@ -1,4 +1,28 @@
-name: medicore
+name: medicore (standalone repos)
+#
+# Prerequisites (no Docker-in-Docker):
+#  1. Build every backend jar first (localhost Maven + JDK 17):
+#        cd medicore-common && mvn clean install           # common lib
+#        cd ../medicore-service-registry && mvn clean package
+#        cd ../medicore-auth-service && mvn clean package
+#        cd ../medicore-patient-service && mvn clean package
+#        cd ../medicore-doctor-service && mvn clean package
+#        cd ../medicore-appointment-service && mvn clean package
+#        cd ../medicore-notification-service && mvn clean package
+#        cd ../medicore-api-gateway && mvn clean package
+#     (Each POM depends on medicore-common; install it first so Maven finds it.)
+#  2. Build the frontend static assets (localhost Node 20):
+#        cd medicore-frontend && npm install && npm run build
+#  3. Then run:
+#        docker compose up
+#     MySQL + Eureka + 5 services + gateway + Nginx-served frontend.
+#
+# Tip: `docker compose up -d` runs detached; `docker compose down` tears it down.
+# Tip: the frontend Dockerfile runs `npm ci` (package-lock.json is committed), so the
+#      assets built outside Docker are NOT used by the container — the container builds
+#      its own. If you want the container to serve locally-built assets, replace the
+#      frontend Dockerfile with a no-build stage that COPYs ./dist instead.
+version: "3.9"
 
 services:
   mysql:
@@ -20,26 +44,23 @@ services:
       retries: 20
 
   service-registry:
-    build: ./service-registry
+    build: ./medicore-service-registry
     ports:
       - "8761:8761"
-
-  api-gateway:
-    build: ./api-gateway
-    ports:
-      - "8080:8080"
     environment:
-      EUREKA_URI: http://service-registry:8761/eureka
-      JWT_SECRET: ${JWT_SECRET:-medicore-dev-secret-key-change-me-in-production-0123456789abcdef}
+      SPRING_PROFILES_ACTIVE: docker
     depends_on:
-      - service-registry
+      mysql:
+        condition: service_healthy
 
   auth-service:
-    build: ./auth-service
+    build: ./medicore-auth-service
     ports:
-      - "8081:8081"   # Swagger UI per service (demo)
+      - "8081:8081"   # Swagger UI per service
     environment:
       DB_HOST: mysql
+      DB_USER: medicore
+      DB_PASSWORD: medicore123
       EUREKA_URI: http://service-registry:8761/eureka
       JWT_SECRET: ${JWT_SECRET:-medicore-dev-secret-key-change-me-in-production-0123456789abcdef}
       INTERNAL_TOKEN: ${INTERNAL_TOKEN:-medicore-internal-dev-token}
@@ -50,11 +71,13 @@ services:
         condition: service_started
 
   patient-service:
-    build: ./patient-service
+    build: ./medicore-patient-service
     ports:
       - "8082:8082"
     environment:
       DB_HOST: mysql
+      DB_USER: medicore
+      DB_PASSWORD: medicore123
       EUREKA_URI: http://service-registry:8761/eureka
       INTERNAL_TOKEN: ${INTERNAL_TOKEN:-medicore-internal-dev-token}
     depends_on:
@@ -64,11 +87,13 @@ services:
         condition: service_started
 
   doctor-service:
-    build: ./doctor-service
+    build: ./medicore-doctor-service
     ports:
       - "8083:8083"
     environment:
       DB_HOST: mysql
+      DB_USER: medicore
+      DB_PASSWORD: medicore123
       EUREKA_URI: http://service-registry:8761/eureka
       INTERNAL_TOKEN: ${INTERNAL_TOKEN:-medicore-internal-dev-token}
     depends_on:
@@ -78,11 +103,13 @@ services:
         condition: service_started
 
   appointment-service:
-    build: ./appointment-service
+    build: ./medicore-appointment-service
     ports:
       - "8084:8084"
     environment:
       DB_HOST: mysql
+      DB_USER: medicore
+      DB_PASSWORD: medicore123
       EUREKA_URI: http://service-registry:8761/eureka
       JWT_SECRET: ${JWT_SECRET:-medicore-dev-secret-key-change-me-in-production-0123456789abcdef}
       INTERNAL_TOKEN: ${INTERNAL_TOKEN:-medicore-internal-dev-token}
@@ -93,11 +120,13 @@ services:
         condition: service_started
 
   notification-service:
-    build: ./notification-service
+    build: ./medicore-notification-service
     ports:
       - "8085:8085"
     environment:
       DB_HOST: mysql
+      DB_USER: medicore
+      DB_PASSWORD: medicore123
       EUREKA_URI: http://service-registry:8761/eureka
       INTERNAL_TOKEN: ${INTERNAL_TOKEN:-medicore-internal-dev-token}
     depends_on:
@@ -106,7 +135,20 @@ services:
       service-registry:
         condition: service_started
 
-  medicore-frontend:
+  api-gateway:
+    build: ./medicore-api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      EUREKA_URI: http://service-registry:8761/eureka
+      JWT_SECRET: ${JWT_SECRET:-medicore-dev-secret-key-change-me-in-production-0123456789abcdef}
+    depends_on:
+      service-registry:
+        condition: service_started
+      auth-service:
+        condition: service_started
+
+  frontend:
     build: ./medicore-frontend
     ports:
       - "3000:80"
