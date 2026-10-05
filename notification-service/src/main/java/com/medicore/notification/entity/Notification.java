@@ -55,4 +55,5 @@ public class Notification {
     public void setFailureReason(String failureReason) { this.failureReason = failureReason; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getSentAt() { return sentAt; }
+    public void setSentAt(LocalDateTime sentAt) { this.sentAt = sentAt; }
 }
